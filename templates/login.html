@@ -1,0 +1,81 @@
+<html>
+<head>
+  <title>{{ .title }}</title>
+  <!-- HTTPS required. HTTP will give a 403 forbidden response -->
+  <script src="https://sdk.accountkit.com/en_US/sdk.js"></script>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO"
+    crossorigin="anonymous">
+</head>
+<body>
+<div class="container">
+  <div class="alert alert-primary" role="alert">
+    {{ .title }}
+  </div>
+  <input value="+84" id="country_code" />
+  <input value="0987937839" placeholder="phone number" id="phone_number" />
+  <button onclick="smsLogin();" class="btn btn-primary">Login via SMS</button>
+  <div>OR</div>
+  <input value="meboxcommunity@gmail.com" type="email" placeholder="email" id="email" />
+  <button onclick="emailLogin();" class="btn btn-primary">Login via Email</button>
+</div>
+<script>
+  // initialize Account Kit with CSRF protection
+  AccountKit_OnInteractive = function () {
+    AccountKit.init(
+      {
+        appId: "{{ .appID }}",
+        version: "{{ .version }}",
+        state: "1234",
+        fbAppEventsEnabled: true,
+        debug: true
+      }
+    );
+  };
+
+  // login callback
+  function loginCallback(response) {
+    console.log(response);
+    if (response.status === "PARTIALLY_AUTHENTICATED") {
+      var code = response.code;
+      var csrf = response.state;
+      // Send code to server to exchange for access token
+      document.getElementById("code").value = code;
+      document.getElementById("csrf").value = csrf;
+      document.getElementById("login_success").submit();
+    }
+    else if (response.status === "NOT_AUTHENTICATED") {
+      // handle authentication failure
+    }
+    else if (response.status === "BAD_PARAMS") {
+      // handle bad parameters
+    }
+  }
+
+  // phone form submission handler
+  function smsLogin() {
+    var countryCode = document.getElementById("country_code").value;
+    var phoneNumber = document.getElementById("phone_number").value;
+    AccountKit.login(
+      'PHONE',
+      { countryCode: countryCode, phoneNumber: phoneNumber }, // will use default values if not specified
+      loginCallback
+    );
+  }
+
+
+  // email form submission handler
+  function emailLogin() {
+    var emailAddress = document.getElementById("email").value;
+    AccountKit.login(
+      'EMAIL',
+      { emailAddress: emailAddress },
+      loginCallback
+    );
+  }
+</script>
+<form id="login_success" method="post" action="/login">
+  <input id="csrf" type="hidden" name="csrf" />
+  <input id="code" type="hidden" name="code" />
+</form>
+</body>
+</html>
